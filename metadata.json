@@ -1,0 +1,6 @@
+{
+  "name": "لوحة قيادة نبض - غرفة الملفات",
+  "description": "لوحة إدارة داخلية لمرشد نبض المعرفي - غرفة إدارة الملفات الشخصية والمعرفية",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
