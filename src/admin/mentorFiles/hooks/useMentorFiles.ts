@@ -3,211 +3,211 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { MentorFile, FolderNode, FileStatus, LoadingMode } from '../data/mentorFilesSchema';
+import { useState, useEffect, useMemo } from 'react';
+import { MentorFile, FolderNode, FileStatus, LoadingMode, PathScope } from '../data/mentorFilesSchema';
 import { MENTOR_FILES_SEED, FOLDER_TREE_SEED } from '../data/mentorFilesSeed';
 
-const STORAGE_KEY = 'nabd_admin_mentor_files_v1';
+const STORAGE_KEY_FILES = 'nabdh_mentor_room_files_v2';
+const STORAGE_KEY_FOLDERS = 'nabdh_mentor_room_folders_v2';
 
 export function useMentorFiles() {
-  // Initialize files state with local persistence
   const [files, setFiles] = useState<MentorFile[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(STORAGE_KEY_FILES);
       if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
-        }
+        return JSON.parse(saved);
       }
     } catch (e) {
-      console.warn('Failed to load mentor files from localStorage', e);
+      console.error('Failed to parse mentor files from localStorage:', e);
     }
     return MENTOR_FILES_SEED;
   });
 
   const [folders] = useState<FolderNode[]>(FOLDER_TREE_SEED);
-  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
+  const [selectedFolderPath, setSelectedFolderPath] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<'all' | FileStatus>('all');
-  const [loadingModeFilter, setLoadingModeFilter] = useState<'all' | LoadingMode>('all');
+  const [statusFilter, setStatusFilter] = useState<FileStatus | 'empty' | 'all'>('all');
+  const [loadingFilter, setLoadingFilter] = useState<LoadingMode | 'all'>('all');
 
   // Save to localStorage on change
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(files));
+      localStorage.setItem(STORAGE_KEY_FILES, JSON.stringify(files));
     } catch (e) {
-      console.error('Failed to save mentor files to localStorage', e);
+      console.error('Failed to save mentor files to localStorage:', e);
     }
   }, [files]);
 
-  // Compute selected file
-  const selectedFile = useMemo(() => {
-    if (!selectedFileId) return null;
-    return files.find(f => f.id === selectedFileId) || null;
+  // Active selected file object
+  const activeFile = useMemo(() => {
+    return files.find((f) => f.id === selectedFileId) || null;
   }, [files, selectedFileId]);
 
-  // Filtered files list
+  // Filtered files list based on search, selected folder, and filter dropdowns
   const filteredFiles = useMemo(() => {
-    return files.filter(file => {
-      // Folder match
-      if (selectedFolder) {
-        // Matches exact folder or subfolder prefix
-        if (!file.folderPath.startsWith(selectedFolder)) {
+    return files.filter((file) => {
+      // Folder filter
+      if (selectedFolderPath) {
+        if (!file.folderPath.startsWith(selectedFolderPath)) {
           return false;
         }
       }
 
-      // Status match
-      if (statusFilter !== 'all' && file.status !== statusFilter) {
+      // Status filter
+      if (statusFilter === 'empty') {
+        if (file.content && file.content.trim() !== '') return false;
+      } else if (statusFilter !== 'all') {
+        if (file.status !== statusFilter) return false;
+      }
+
+      // Loading mode filter
+      if (loadingFilter !== 'all' && file.loadingMode !== loadingFilter) {
         return false;
       }
 
-      // Loading mode match
-      if (loadingModeFilter !== 'all' && file.loadingMode !== loadingModeFilter) {
-        return false;
-      }
-
-      // Search match
+      // Search query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
-        const inName = file.displayNameAr.toLowerCase().includes(q);
-        const inSlug = file.slug.toLowerCase().includes(q);
-        const inTag = file.tag.toLowerCase().includes(q);
-        const inContent = file.content.toLowerCase().includes(q);
-        if (!inName && !inSlug && !inTag && !inContent) {
-          return false;
-        }
+        const matchName = file.displayNameAr.toLowerCase().includes(q);
+        const matchSlug = file.slug.toLowerCase().includes(q);
+        const matchTag = file.tag.toLowerCase().includes(q);
+        const matchContent = file.content.toLowerCase().includes(q);
+        return matchName || matchSlug || matchTag || matchContent;
       }
 
       return true;
     });
-  }, [files, selectedFolder, statusFilter, loadingModeFilter, searchQuery]);
+  }, [files, selectedFolderPath, statusFilter, loadingFilter, searchQuery]);
 
-  // Actions
-  const updateFileMeta = useCallback((id: string, updates: Partial<MentorFile>) => {
-    setFiles(prev => prev.map(f => {
-      if (f.id === id) {
-        return {
-          ...f,
-          ...updates,
-          lastModified: new Date().toISOString()
-        };
-      }
-      return f;
-    }));
-  }, []);
+  // Statistics
+  const stats = useMemo(() => {
+    return {
+      total: files.length,
+      approved: files.filter((f) => f.status === 'approved').length,
+      inReview: files.filter((f) => f.status === 'in-review').length,
+      empty: files.filter((f) => !f.content || f.content.trim() === '').length,
+      alwaysLoaded: files.filter((f) => f.loadingMode === 'always').length,
+      pathConditional: files.filter((f) => f.loadingMode === 'path-conditional').length,
+      onDemand: files.filter((f) => f.loadingMode === 'on-demand').length,
+    };
+  }, [files]);
 
-  const createNewVersion = useCallback((
-    id: string,
-    noteText: string,
-    newContent?: string,
-    metaUpdates?: Partial<MentorFile>
-  ) => {
-    if (!noteText.trim()) {
-      throw new Error('ملاحظة التغيير إجبارية لحفظ إصدار جديد.');
-    }
-
-    setFiles(prev => prev.map(f => {
-      if (f.id === id) {
-        const nextVersion = f.version + 1;
-        const todayStr = new Date().toISOString().split('T')[0];
-        const newNote = {
-          version: nextVersion,
-          date: todayStr,
-          note: noteText.trim()
-        };
-
-        return {
-          ...f,
-          ...metaUpdates,
-          version: nextVersion,
-          content: newContent !== undefined ? newContent : f.content,
-          changeNotes: [newNote, ...f.changeNotes],
-          lastModified: new Date().toISOString()
-        };
-      }
-      return f;
-    }));
-  }, []);
-
-  const createFile = useCallback((
-    newFileData: Omit<MentorFile, 'id' | 'version' | 'changeNotes' | 'lastModified'> & { changeNote: string }
-  ) => {
-    const { changeNote, ...rest } = newFileData;
-    const id = `file-custom-${Date.now()}`;
-    const todayStr = new Date().toISOString().split('T')[0];
-    
-    const fileToAdd: MentorFile = {
-      ...rest,
+  // Add a new file
+  const addFile = (newFile: Omit<MentorFile, 'id' | 'lastModified'>) => {
+    const id = `file-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+    const hasContent = Boolean(newFile.content && newFile.content.trim() !== '');
+    const fullFile: MentorFile = {
+      ...newFile,
       id,
-      version: 1,
-      changeNotes: [
-        {
-          version: 1,
-          date: todayStr,
-          note: changeNote || 'إنشاء ملف جديد في النظام المعرفي'
-        }
-      ],
-      lastModified: new Date().toISOString()
+      status: hasContent ? (newFile.status || 'in-review') : newFile.status,
+      lastModified: new Date().toISOString(),
     };
 
-    setFiles(prev => [fileToAdd, ...prev]);
+    setFiles((prev) => [fullFile, ...prev]);
     setSelectedFileId(id);
     return id;
-  }, []);
+  };
 
-  const deleteFile = useCallback((id: string) => {
-    setFiles(prev => prev.filter(f => f.id !== id));
+  // Update file metadata (tag, status, loadingMode, loadingCondition, pathScope, displayNameAr, etc.)
+  const updateFileMetadata = (id: string, updates: Partial<MentorFile>) => {
+    setFiles((prev) =>
+      prev.map((file) => {
+        if (file.id !== id) return file;
+        return {
+          ...file,
+          ...updates,
+          lastModified: new Date().toISOString(),
+        };
+      })
+    );
+  };
+
+  // Replace content directly from pasted text
+  const updateFileContent = (id: string, newContent: string) => {
+    setFiles((prev) =>
+      prev.map((file) => {
+        if (file.id !== id) return file;
+        return {
+          ...file,
+          content: newContent,
+          lastModified: new Date().toISOString(),
+        };
+      })
+    );
+  };
+
+  // Read uploaded File object and set file content
+  const uploadFileContent = async (id: string, file: File): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result;
+        if (typeof text === 'string') {
+          updateFileContent(id, text);
+          resolve();
+        } else {
+          reject(new Error('فشل في قراءة محتوى الملف المرفوع'));
+        }
+      };
+      reader.onerror = () => reject(reader.error);
+      reader.readAsText(file, 'UTF-8');
+    });
+  };
+
+  // Download content as file
+  const downloadFileContent = (id: string) => {
+    const targetFile = files.find((f) => f.id === id);
+    if (!targetFile) return;
+
+    const blob = new Blob([targetFile.content || ''], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${targetFile.slug || 'mentor-file'}.md`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // Delete file
+  const deleteFile = (id: string) => {
+    setFiles((prev) => prev.filter((f) => f.id !== id));
     if (selectedFileId === id) {
       setSelectedFileId(null);
     }
-  }, [selectedFileId]);
+  };
 
-  const resetToSeed = useCallback(() => {
+  // Reset to seed
+  const resetToSeed = () => {
     setFiles(MENTOR_FILES_SEED);
     setSelectedFileId(null);
-    setSelectedFolder(null);
-  }, []);
-
-  // Compute folder counts helper
-  const folderFileCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    files.forEach(file => {
-      // Accumulate for specific path and parent paths
-      const parts = file.folderPath.split('/');
-      let currentPath = '';
-      parts.forEach(part => {
-        currentPath = currentPath ? `${currentPath}/${part}` : part;
-        counts[currentPath] = (counts[currentPath] || 0) + 1;
-      });
-    });
-    return counts;
-  }, [files]);
+    localStorage.removeItem(STORAGE_KEY_FILES);
+  };
 
   return {
     files,
-    filteredFiles,
     folders,
-    selectedFolder,
+    activeFile,
     selectedFileId,
-    selectedFile,
-    searchQuery,
-    statusFilter,
-    loadingModeFilter,
-    folderFileCounts,
-    // Setters
-    setSelectedFolder,
     setSelectedFileId,
+    selectedFolderPath,
+    setSelectedFolderPath,
+    searchQuery,
     setSearchQuery,
+    statusFilter,
     setStatusFilter,
-    setLoadingModeFilter,
-    // Actions
-    updateFileMeta,
-    createNewVersion,
-    createFile,
+    loadingFilter,
+    setLoadingFilter,
+    filteredFiles,
+    stats,
+    addFile,
+    updateFileMetadata,
+    updateFileContent,
+    uploadFileContent,
+    downloadFileContent,
     deleteFile,
-    resetToSeed
+    resetToSeed,
   };
 }

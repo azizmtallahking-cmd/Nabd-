@@ -29,12 +29,20 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
 
   const menuItems = [
     {
+      key: 'living-scene',
+      labelAr: 'المشهد الحي (الحديقة والسبورة)',
+      subtitleAr: 'واجهة السالك الرئيسية والتفاعل',
+      icon: Sparkles,
+      active: true,
+      badge: 'الواجهة الرئيسية'
+    },
+    {
       key: 'mentor-files',
       labelAr: 'غرفة ملفات المرشد',
       subtitleAr: 'إدارة العقل والمعرفة المعرفية',
       icon: FolderGit2,
       active: true,
-      badge: 'نشط الأن'
+      badge: 'غرفة الإدارة'
     },
     {
       key: 'statistics',
