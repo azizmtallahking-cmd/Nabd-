@@ -63,56 +63,59 @@ export const Chalkboard: React.FC<ChalkboardProps> = ({
         <div className="absolute bottom-0 left-0 w-3 h-3 border-l-2 border-b-2 border-amber-500/60" />
 
         {/* Chalk Slate Canvas Surface */}
-        <div className="w-full h-full min-h-[170px] bg-[#11221b] border border-emerald-950 rounded-[2px] p-4 relative overflow-hidden flex flex-col justify-between shadow-[inset_0_0_40px_rgba(0,0,0,0.8)]">
+        <div className="w-full h-full min-h-[240px] md:min-h-[280px] bg-[#0c1813] border-2 border-emerald-900/60 rounded-[3px] p-5 md:p-6 relative overflow-hidden flex flex-col justify-between shadow-[inset_0_0_50px_rgba(0,0,0,0.9)]">
           
           {/* Subtle Chalk Texture Overlay */}
           <div 
-            className="absolute inset-0 opacity-20 pointer-events-none mix-blend-overlay"
+            className="absolute inset-0 opacity-25 pointer-events-none mix-blend-overlay"
             style={{
-              backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.15) 0%, transparent 80%), repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 3px)',
+              backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.2) 0%, transparent 80%), repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.04) 3px)',
             }}
           />
 
           {/* Erasing Dust Overlay */}
           {isErasing && (
-            <div className="absolute inset-0 bg-emerald-950/40 backdrop-blur-[1px] transition-opacity duration-200 z-10 flex items-center justify-center">
-              <span className="text-[10px] text-emerald-300/60 font-mono tracking-widest animate-pulse">
-                [ مسح وتحديث السبورة... ]
+            <div className="absolute inset-0 bg-emerald-950/60 backdrop-blur-[1px] transition-opacity duration-200 z-10 flex items-center justify-center">
+              <span className="text-xs text-emerald-300 font-mono tracking-widest animate-pulse">
+                [ مسح وتحديث السبورة التوجيهية... ]
               </span>
             </div>
           )}
 
           {/* Main Goal Header Section */}
-          <div className="border-b border-emerald-800/40 pb-2 mb-3 flex items-center justify-between">
+          <div className="border-b border-emerald-800/40 pb-2.5 mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400/80 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-              <span className="text-[11px] font-mono font-bold tracking-wider text-emerald-300/80 uppercase">
-                غاية اليوم:
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)]" />
+              <span className="text-xs font-mono font-bold tracking-wider text-emerald-300/90 uppercase">
+                غاية اليوم (كلام المرشد):
               </span>
             </div>
-            <span className="text-xs font-semibold text-emerald-100 tracking-wide font-sans bg-emerald-900/30 px-2 py-0.5 rounded border border-emerald-700/30">
+            <span className="text-xs md:text-sm font-semibold text-emerald-100 tracking-wide font-sans bg-emerald-950/80 px-2.5 py-1 rounded border border-emerald-700/40">
               {state.mainGoalText}
             </span>
           </div>
 
           {/* Dynamic Dialogue Message (Typewriter Chalk Text) */}
-          <div className="flex-1 flex items-center justify-center py-2 text-center">
-            <p className="text-sm md:text-base font-medium text-stone-100 leading-relaxed font-sans text-shadow-chalk tracking-wide max-w-md">
+          <div className="flex-1 flex items-center justify-center py-4 text-center">
+            <p className="text-base md:text-xl font-medium text-amber-50 leading-relaxed font-sans tracking-wide max-w-xl drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
               {displayedText}
               {!isFullyTyped && (
-                <span className="inline-block w-2 h-4 bg-emerald-300/80 ms-1 animate-pulse" />
+                <span className="inline-block w-2.5 h-5 bg-emerald-300/90 ms-1.5 animate-pulse" />
               )}
             </p>
           </div>
 
           {/* Bottom Chalk Tray & Chalk Dust Footer */}
-          <div className="pt-2 border-t border-emerald-900/40 flex items-center justify-between text-[10px] text-emerald-400/60 font-mono">
-            <span>[ السبورة التوجيهية ]</span>
-            <div className="flex items-center gap-1">
-              <span className="w-4 h-1 bg-amber-100/70 rounded-sm shadow-sm" title="طباشير أبيض" />
-              <span className="w-3 h-1 bg-emerald-200/60 rounded-sm shadow-sm" title="طباشير أخضر" />
-              <span className="text-[9px] text-emerald-500/80 font-sans ms-1 group-hover:text-emerald-300 transition-colors">
-                انقر للتفاعل ✦
+          <div className="pt-2.5 border-t border-emerald-900/50 flex items-center justify-between text-[11px] text-emerald-400/70 font-mono">
+            <span className="flex items-center gap-1.5">
+              <span className="text-emerald-300 font-bold">سبورة المرشد</span>
+              <span className="text-stone-500">• (صوت التوجيه والغاية)</span>
+            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="w-4 h-1 bg-amber-100/80 rounded-sm shadow-sm" title="طباشير أبيض" />
+              <span className="w-3 h-1 bg-emerald-200/70 rounded-sm shadow-sm" title="طباشير أخضر" />
+              <span className="text-[10px] text-emerald-400 font-sans ms-1 group-hover:text-emerald-200 transition-colors">
+                انقر للتبديل ✦
               </span>
             </div>
           </div>

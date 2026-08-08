@@ -24,3 +24,30 @@
   background: #3f3f46;
 }
 
+/* Ambient Subtle Animations for Nabd Living Scene */
+@keyframes subtleBreath {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-2.5px) scale(1.003);
+  }
+}
+
+.animate-subtle-breath {
+  animation: subtleBreath 6s ease-in-out infinite;
+}
+
+@keyframes gentleSway {
+  0%, 100% {
+    transform: rotate(0deg) translateX(0px);
+  }
+  50% {
+    transform: rotate(0.6deg) translateX(1px);
+  }
+}
+
+.animate-gentle-sway {
+  animation: gentleSway 7s ease-in-out infinite;
+}
+
